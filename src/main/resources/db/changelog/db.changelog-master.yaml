@@ -1,0 +1,11 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-table
+      author: posteq
+  - include:
+      file: db/changelog/changeset/0.0.1_init_table.sql
+  - changeSet:
+      id: create-index
+      author: posteq
+  - include:
+      file: db/changelog/changeset/0.0.1_create_index.sql
