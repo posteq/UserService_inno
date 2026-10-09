@@ -1,6 +1,7 @@
 package com.innowise.academy.userservice.entity;
 
 
+import com.innowise.academy.userservice.entity.auditable.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -38,12 +39,4 @@ public class PaymentCardEntity extends BaseEntity {
 
     @Column(name = "active")
     private Boolean active;
-
-    @CreatedDate
-    @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
-
-    @LastModifiedDate
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
 }

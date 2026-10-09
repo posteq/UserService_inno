@@ -1,4 +1,4 @@
-package com.innowise.academy.userservice.entity;
+package com.innowise.academy.userservice.entity.auditable;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.EntityListeners;

@@ -1,5 +1,6 @@
 package com.innowise.academy.userservice.entity;
 
+import com.innowise.academy.userservice.entity.auditable.BaseEntity;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -10,11 +11,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.*;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -33,7 +31,7 @@ public class UserEntity extends BaseEntity {
     private Long id;
 
     @Column(name = "name")
-    private String name;
+    private String firstname;
 
     @Column(name = "surname")
     private String surname;
@@ -49,12 +47,4 @@ public class UserEntity extends BaseEntity {
 
     @OneToMany(mappedBy = "user",fetch = FetchType.LAZY,cascade = CascadeType.ALL)
     private List<PaymentCardEntity> paymentCards = new ArrayList<>();
-
-    @CreatedDate
-    @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
-
-    @LastModifiedDate
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
 }
