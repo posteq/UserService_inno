@@ -16,4 +16,6 @@ public interface PaymentCardRepository extends JpaRepository<PaymentCardEntity,L
     @Modifying
     @Query("UPDATE PaymentCardEntity c SET c.active =: active WHERE c.id =: id")
     void changeActiveById(Long id, Boolean active);
+
+    long countByUser_IdAndActiveTrue(Long userId);
 }
