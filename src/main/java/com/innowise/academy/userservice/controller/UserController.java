@@ -1,49 +1,71 @@
 package com.innowise.academy.userservice.controller;
 
-import com.innowise.academy.userservice.dto.card.CardNewDto;
-import com.innowise.academy.userservice.dto.card.CardResponseDto;
-import com.innowise.academy.userservice.dto.user.UpdateUserRequest;
-import com.innowise.academy.userservice.dto.user.UserNewDto;
-import com.innowise.academy.userservice.dto.user.UserResponseDto;
+import com.innowise.academy.userservice.dto.request.card.CardNewDto;
+import com.innowise.academy.userservice.dto.response.card.CardResponseDto;
+import com.innowise.academy.userservice.dto.request.user.UpdateUserRequest;
+import com.innowise.academy.userservice.dto.request.user.UserNewDto;
+import com.innowise.academy.userservice.dto.response.card.CardShortResponseDto;
+import com.innowise.academy.userservice.dto.response.user.UserResponseDto;
+import com.innowise.academy.userservice.dto.response.user.UserResponseDtoWithCards;
 import com.innowise.academy.userservice.service.CardService;
 import com.innowise.academy.userservice.service.UserService;
 import jakarta.validation.Valid;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import java.net.URI;
 import java.util.List;
 
 @RestController
-@RequestMapping("/users/")
+@RequestMapping("/users")
 @RequiredArgsConstructor
 public class UserController {
 
     private final UserService userService;
     private final CardService cardService;
 
-    @GetMapping("/{userId}")
-    public ResponseEntity<UserResponseDto> getById(@PathVariable @NonNull Long userId){
-        UserResponseDto user = userService.getUser(userId);
-        return ResponseEntity.ok()
-                .body(user);
-    }
-
-
-    @DeleteMapping("/{userId}")
-    public ResponseEntity<Void> deleteById(@PathVariable @NonNull Long userId){
-        userService.delete(userId);
-        return ResponseEntity.noContent()
-                .build();
-    }
-
-
     @PostMapping
     public ResponseEntity<UserResponseDto> create(@RequestBody @Valid UserNewDto userNewDto){
         UserResponseDto userResponseDto = userService.create(userNewDto);
-        return ResponseEntity.ok()
+
+        URI location = ServletUriComponentsBuilder.fromCurrentRequest()
+                .path("/{id}")
+                .buildAndExpand(userResponseDto.id())
+                .toUri();
+
+        return ResponseEntity.created(location)
                 .body(userResponseDto);
+    }
+
+    @GetMapping
+    public ResponseEntity<List<UserResponseDto>> getUsers(@RequestParam(required = false) String firstname,
+                                                          @RequestParam(required = false) String surname,
+                                                          @RequestParam(defaultValue = "0") int page,
+                                                          @RequestParam(defaultValue = "10") int size,
+                                                          @RequestParam(defaultValue = "firstname") String sortBy,
+                                                          @RequestParam(defaultValue = "ASC") String sortDir){
+        List<UserResponseDto> users = userService.getUsers(firstname, surname, page, size, sortBy, sortDir);
+        return ResponseEntity.ok()
+                .body(users);
+
+    }
+
+    @GetMapping("/{userId}")
+    public ResponseEntity<UserResponseDtoWithCards> getById(@PathVariable @NonNull Long userId){
+        UserResponseDtoWithCards user = userService.getUser(userId);
+        return ResponseEntity.ok()
+                .body(user);
     }
 
     @PatchMapping("/{userId}")
@@ -55,34 +77,35 @@ public class UserController {
                 .body(update);
     }
 
-    @PatchMapping("/{userId}/active")
-    public ResponseEntity<UserResponseDto> changeUserStatus(@RequestParam @NonNull Boolean status,
-                                                            @PathVariable @NonNull Long userId){
-        userService.changeStatus(status,userId);
+    @DeleteMapping("/{userId}")
+    public ResponseEntity<Void> deleteById(@PathVariable @NonNull Long userId){
+        userService.delete(userId);
         return ResponseEntity.noContent()
                 .build();
     }
 
-    @GetMapping
-    public ResponseEntity<List<UserResponseDto>> getUsers(@RequestParam(defaultValue = "10") String firstname,
-                                                          @RequestParam(defaultValue = "10") String surname,
-                                                          @RequestParam(defaultValue = "0") int page,
-                                                          @RequestParam(defaultValue = "10") int size,
-                                                          @RequestParam(defaultValue = "firstname") String sortBy,
-                                                          @RequestParam(defaultValue = "ASC") String sortDir){
-        List<UserResponseDto> users = userService.getUsers(firstname, surname, page, size, sortBy, sortDir);
-        return ResponseEntity.ok()
-                .body(users);
-
+    @PatchMapping("/{userId}/active")
+    public ResponseEntity<Void> changeUserStatus(@PathVariable @NonNull Long userId,
+                                                 @RequestParam @NonNull Boolean active){
+        userService.changeStatus(active,userId);
+        return ResponseEntity.noContent()
+                .build();
     }
 
-    @PatchMapping("/{userId}/cards")
-    public ResponseEntity<UserResponseDto> addCard(@RequestPart @NonNull Long userId,
-                                                   @RequestBody @Valid CardNewDto cardNewDto){
+    @PostMapping("/{userId}/cards")
+    public ResponseEntity<Void> addCardToUser(@PathVariable @NonNull Long userId,
+                                              @RequestBody @Valid CardNewDto cardNewDto){
 
-
-        CardResponseDto cardResponseDto = cardService.addCardToUsers(userId,cardNewDto);
+        cardService.addCardToUsers(userId,cardNewDto);
         return ResponseEntity.ok()
                 .build();
+    }
+
+    @GetMapping("/{userId}/cards")
+    public ResponseEntity<List<CardShortResponseDto>> getCardByUserId(@PathVariable @NonNull Long userId){
+        List<CardShortResponseDto> cardsByUserId = cardService.getCardsByUserId(userId);
+
+        return ResponseEntity.ok()
+                .body(cardsByUserId);
     }
 }

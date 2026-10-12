@@ -30,14 +30,14 @@ public class UserEntity extends BaseEntity {
     @Column(name = "id")
     private Long id;
 
-    @Column(name = "name")
+    @Column(name = "firstname")
     private String firstname;
 
     @Column(name = "surname")
     private String surname;
 
     @Column(name = "birth_day")
-    private LocalDate birthDay;
+    private LocalDate birthday;
 
     @Column(name = "email")
     private String email;

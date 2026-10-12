@@ -1,30 +1,34 @@
 package com.innowise.academy.userservice.controller;
 
-import com.innowise.academy.userservice.dto.card.CardResponseDto;
-import com.innowise.academy.userservice.dto.card.UpdateCardDto;
+import com.innowise.academy.userservice.dto.response.card.CardResponseDto;
+import com.innowise.academy.userservice.dto.request.card.UpdateCardDto;
 import com.innowise.academy.userservice.service.CardService;
 import jakarta.validation.Valid;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/cards/")
+@RequestMapping("/cards")
 @RequiredArgsConstructor
 public class CardController {
 
-    CardService service;
+    private final CardService service;
 
-    @DeleteMapping("/{cardId}")
-    public ResponseEntity<Void> deleteById(@PathVariable @NonNull Long cardId){
-        service.delete(cardId);
-        return ResponseEntity.noContent()
-                .build();
+    @GetMapping("/{cardId}")
+    public ResponseEntity<CardResponseDto> getById(@PathVariable @NonNull Long cardId){
+        CardResponseDto card = service.getCard(cardId);
+
+        return ResponseEntity.ok()
+                .body(card);
     }
-
 
     @PatchMapping("/{cardId}")
     public ResponseEntity<CardResponseDto> update(@PathVariable @NonNull Long cardId,
@@ -35,11 +39,10 @@ public class CardController {
                 .body(update);
     }
 
-    @GetMapping("/{userId}/cards")
-    public ResponseEntity<List<CardResponseDto>> getCardByUserId(@PathVariable @NonNull Long userId){
-        List<CardResponseDto> cardsByUserId = service.getCardsByUserId(userId);
-
-        return ResponseEntity.ok()
-                .body(cardsByUserId);
+    @DeleteMapping("/{cardId}")
+    public ResponseEntity<Void> deleteById(@PathVariable @NonNull Long cardId){
+        service.delete(cardId);
+        return ResponseEntity.noContent()
+                .build();
     }
 }

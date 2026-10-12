@@ -13,7 +13,7 @@ public final class UserSpecification {
                   return cb.conjunction();
               }
               return cb.equal(
-                      cb.lower(root.get("name")),firstname.trim().toLowerCase()
+                      cb.lower(root.get("firstname")),firstname.trim().toLowerCase()
               );
             };
         }

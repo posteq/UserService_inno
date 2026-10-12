@@ -1,4 +1,4 @@
-package com.innowise.academy.userservice.dto.card;
+package com.innowise.academy.userservice.dto.request.card;
 
 import lombok.Getter;
 import lombok.Setter;
