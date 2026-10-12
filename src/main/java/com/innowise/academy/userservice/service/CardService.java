@@ -1,12 +1,13 @@
 package com.innowise.academy.userservice.service;
 
-import com.innowise.academy.userservice.dto.card.CardNewDto;
-import com.innowise.academy.userservice.dto.card.CardResponseDto;
-import com.innowise.academy.userservice.dto.card.UpdateCardDto;
+import com.innowise.academy.userservice.dto.request.card.CardNewDto;
+import com.innowise.academy.userservice.dto.response.card.CardResponseDto;
+import com.innowise.academy.userservice.dto.request.card.UpdateCardDto;
 import com.innowise.academy.userservice.entity.PaymentCardEntity;
 import com.innowise.academy.userservice.entity.UserEntity;
+import com.innowise.academy.userservice.exception.CardExistException;
 import com.innowise.academy.userservice.exception.CardNotFoundException;
-import com.innowise.academy.userservice.exception.LimitUsersCardException;
+import com.innowise.academy.userservice.exception.CardLimitExceededException;
 import com.innowise.academy.userservice.exception.UserNotFoundException;
 import com.innowise.academy.userservice.mapper.CardMapper;
 import com.innowise.academy.userservice.repository.PaymentCardRepository;
@@ -17,11 +18,13 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Service
 @AllArgsConstructor
+@Transactional
 public class CardService {
 
     private final CardMapper cardMapper;
@@ -49,19 +52,23 @@ public class CardService {
         cardRepository.changeActiveById(id,active);
     }
 
-    public CardResponseDto addCardToUsers(Long userId,CardNewDto card){
+    public void addCardToUsers(Long userId,CardNewDto card){
         UserEntity user = userRepository.findByIdAndActive(userId, Boolean.TRUE)
                 .orElseThrow(() ->new UserNotFoundException(userId));
+
+        if (cardRepository.findByNumber(card.getNumber()).isPresent()) {
+            throw new CardExistException(card.getNumber());
+        }
+
         long cardsCount = cardRepository.countByUser_IdAndActiveTrue(userId);
+
         if (cardsCount >= 5){
-            throw new LimitUsersCardException(userId);
+            throw new CardLimitExceededException(userId);
         }
 
         PaymentCardEntity paymentCardEntity = cardMapper.cardNewToEntity(card);
         paymentCardEntity.setUser(user);
-        PaymentCardEntity savedCard = cardRepository.save(paymentCardEntity);
-
-        return cardMapper.entityToResponseDto(savedCard);
+        cardRepository.save(paymentCardEntity);
     }
 
     public void delete(Long id){
@@ -86,7 +93,7 @@ public class CardService {
     }
 
     public List<CardResponseDto> getCardsByUserId(Long userId){
-        List<PaymentCardEntity> allByUserId = cardRepository.getAllByUserId(userId);
+        List<PaymentCardEntity> allByUserId = cardRepository.getAllByUser_Id(userId);
 
         return allByUserId.stream()
                 .map(cardMapper::entityToResponseDto)

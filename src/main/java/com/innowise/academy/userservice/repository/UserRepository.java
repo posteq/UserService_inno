@@ -13,9 +13,11 @@ import java.util.Optional;
 public interface UserRepository extends JpaRepository<UserEntity,Long>, JpaSpecificationExecutor<UserEntity> {
 
     @Modifying
-    @Query("UPDATE UserEntity c SET c.active =: active WHERE c.id =: id")
+    @Query("UPDATE UserEntity c SET c.active =:active WHERE c.id =:id")
     void changeActiveById(Long id, Boolean active);
 
     Optional<UserEntity> findByIdAndActive(Long id, Boolean active);
+
+    boolean existsByEmail(String email);
 }
 
