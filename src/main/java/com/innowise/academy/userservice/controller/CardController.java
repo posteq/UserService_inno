@@ -16,11 +16,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/cards/")
+@RequestMapping("/cards")
 @RequiredArgsConstructor
 public class CardController {
 
-    CardService service;
+    private final CardService service;
 
     @GetMapping("/{cardId}")
     public ResponseEntity<CardResponseDto> getById(@PathVariable @NonNull Long cardId){

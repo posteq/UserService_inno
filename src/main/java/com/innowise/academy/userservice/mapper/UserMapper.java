@@ -12,7 +12,8 @@ import org.mapstruct.MappingTarget;
 import static org.mapstruct.NullValuePropertyMappingStrategy.IGNORE;
 
 @Mapper(componentModel = "spring",
-        nullValuePropertyMappingStrategy = IGNORE)
+        nullValuePropertyMappingStrategy = IGNORE,
+        uses = {CardMapper.class})
 public interface UserMapper {
 
     @Mapping(source = "paymentCards",target = "cards")

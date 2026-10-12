@@ -1,23 +1,16 @@
 package com.innowise.academy.userservice.dto.response.user;
 
-import com.innowise.academy.userservice.entity.PaymentCardEntity;
-import lombok.Getter;
-import lombok.Setter;
-import tools.jackson.databind.annotation.JsonSerialize;
+import com.innowise.academy.userservice.dto.response.card.CardShortResponseDto;
 
 import java.time.LocalDate;
 import java.util.List;
 
 
-@Getter
-@Setter
-@JsonSerialize
-public class UserResponseDtoWithCards{
-    private Long id;
-    private String firstname;
-    private String surname;
-    private LocalDate birthday;
-    private String email;
-    private Boolean active;
-    private List<PaymentCardEntity> cards;
-}
+public record UserResponseDtoWithCards(Long id,
+String firstname,
+String surname,
+LocalDate birthday,
+String email,
+Boolean active,
+List<CardShortResponseDto> cards
+){}

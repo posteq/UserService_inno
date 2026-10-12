@@ -1,13 +1,15 @@
 package com.innowise.academy.userservice.service;
 
+import com.innowise.academy.userservice.config.UserCacheEvictor;
 import com.innowise.academy.userservice.dto.request.card.CardNewDto;
-import com.innowise.academy.userservice.dto.response.card.CardResponseDto;
 import com.innowise.academy.userservice.dto.request.card.UpdateCardDto;
+import com.innowise.academy.userservice.dto.response.card.CardResponseDto;
+import com.innowise.academy.userservice.dto.response.card.CardShortResponseDto;
 import com.innowise.academy.userservice.entity.PaymentCardEntity;
 import com.innowise.academy.userservice.entity.UserEntity;
 import com.innowise.academy.userservice.exception.CardExistException;
-import com.innowise.academy.userservice.exception.CardNotFoundException;
 import com.innowise.academy.userservice.exception.CardLimitExceededException;
+import com.innowise.academy.userservice.exception.CardNotFoundException;
 import com.innowise.academy.userservice.exception.UserNotFoundException;
 import com.innowise.academy.userservice.mapper.CardMapper;
 import com.innowise.academy.userservice.repository.PaymentCardRepository;
@@ -30,6 +32,8 @@ public class CardService {
     private final CardMapper cardMapper;
     private PaymentCardRepository cardRepository;
     private UserRepository userRepository;
+
+    private final UserCacheEvictor userCacheEvictor;
 
     public List<CardResponseDto> getCards(String holder,
                                           int page, int size, String sortBy, String sortDir){
@@ -69,10 +73,16 @@ public class CardService {
         PaymentCardEntity paymentCardEntity = cardMapper.cardNewToEntity(card);
         paymentCardEntity.setUser(user);
         cardRepository.save(paymentCardEntity);
+        userCacheEvictor.evict(userId);
     }
 
     public void delete(Long id){
-        cardRepository.deleteById(id);
+        PaymentCardEntity card = cardRepository.findById(id)
+                .orElseThrow(() -> new CardNotFoundException(id));
+        Long userId = card.getUser().getId();
+        cardRepository.delete(card);
+
+        userCacheEvictor.evict(userId);
     }
 
     public CardResponseDto getCard(Long id){
@@ -89,14 +99,17 @@ public class CardService {
         cardMapper.updateEntity(card,paymentCardEntity);
 
         PaymentCardEntity updatedCard = cardRepository.save(paymentCardEntity);
+
+        userCacheEvictor.evict(updatedCard.getUser().getId());
+
         return cardMapper.entityToResponseDto(updatedCard);
     }
 
-    public List<CardResponseDto> getCardsByUserId(Long userId){
+    public List<CardShortResponseDto> getCardsByUserId(Long userId){
         List<PaymentCardEntity> allByUserId = cardRepository.getAllByUser_Id(userId);
 
         return allByUserId.stream()
-                .map(cardMapper::entityToResponseDto)
+                .map(cardMapper::entityToShortResponseDto)
                 .toList();
     }
 

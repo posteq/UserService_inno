@@ -4,6 +4,7 @@ import com.innowise.academy.userservice.dto.request.card.CardNewDto;
 import com.innowise.academy.userservice.dto.response.card.CardResponseDto;
 import com.innowise.academy.userservice.dto.request.user.UpdateUserRequest;
 import com.innowise.academy.userservice.dto.request.user.UserNewDto;
+import com.innowise.academy.userservice.dto.response.card.CardShortResponseDto;
 import com.innowise.academy.userservice.dto.response.user.UserResponseDto;
 import com.innowise.academy.userservice.dto.response.user.UserResponseDtoWithCards;
 import com.innowise.academy.userservice.service.CardService;
@@ -21,11 +22,13 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import java.net.URI;
 import java.util.List;
 
 @RestController
-@RequestMapping("/users/")
+@RequestMapping("/users")
 @RequiredArgsConstructor
 public class UserController {
 
@@ -35,7 +38,13 @@ public class UserController {
     @PostMapping
     public ResponseEntity<UserResponseDto> create(@RequestBody @Valid UserNewDto userNewDto){
         UserResponseDto userResponseDto = userService.create(userNewDto);
-        return ResponseEntity.ok()
+
+        URI location = ServletUriComponentsBuilder.fromCurrentRequest()
+                .path("/{id}")
+                .buildAndExpand(userResponseDto.id())
+                .toUri();
+
+        return ResponseEntity.created(location)
                 .body(userResponseDto);
     }
 
@@ -83,7 +92,7 @@ public class UserController {
                 .build();
     }
 
-    @PatchMapping("/{userId}/cards")
+    @PostMapping("/{userId}/cards")
     public ResponseEntity<Void> addCardToUser(@PathVariable @NonNull Long userId,
                                               @RequestBody @Valid CardNewDto cardNewDto){
 
@@ -93,8 +102,8 @@ public class UserController {
     }
 
     @GetMapping("/{userId}/cards")
-    public ResponseEntity<List<CardResponseDto>> getCardByUserId(@PathVariable @NonNull Long userId){
-        List<CardResponseDto> cardsByUserId = cardService.getCardsByUserId(userId);
+    public ResponseEntity<List<CardShortResponseDto>> getCardByUserId(@PathVariable @NonNull Long userId){
+        List<CardShortResponseDto> cardsByUserId = cardService.getCardsByUserId(userId);
 
         return ResponseEntity.ok()
                 .body(cardsByUserId);
