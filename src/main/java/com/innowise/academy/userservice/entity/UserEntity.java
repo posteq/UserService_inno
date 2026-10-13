@@ -45,6 +45,7 @@ public class UserEntity extends BaseEntity {
     @Column(name = "active")
     private Boolean active;
 
-    @OneToMany(mappedBy = "user",fetch = FetchType.LAZY,cascade = CascadeType.ALL)
+    @ToString.Exclude
+    @OneToMany(mappedBy = "user",fetch = FetchType.LAZY,cascade = CascadeType.ALL,orphanRemoval = true)
     private List<PaymentCardEntity> paymentCards = new ArrayList<>();
 }
