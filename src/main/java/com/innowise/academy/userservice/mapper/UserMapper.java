@@ -21,9 +21,6 @@ public interface UserMapper {
 
     UserResponseDto userToResponseDto(UserEntity entity);
 
-    @Mapping(source = "cards",target = "paymentCards")
-    UserEntity responseDtoToEntity(UserResponseDtoWithCards response);
-
     @Mapping(target = "active", constant = "true")
     UserEntity userNewDtoToUser(UserNewDto user);
 

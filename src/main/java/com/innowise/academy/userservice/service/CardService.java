@@ -15,7 +15,8 @@ import com.innowise.academy.userservice.mapper.CardMapper;
 import com.innowise.academy.userservice.repository.PaymentCardRepository;
 import com.innowise.academy.userservice.repository.UserRepository;
 import com.innowise.academy.userservice.repository.specification.CardSpecification;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
@@ -24,17 +25,22 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+import static com.innowise.academy.userservice.config.RedisCacheConfig.USERS_CACHE;
+
 @Service
-@AllArgsConstructor
+@RequiredArgsConstructor
 @Transactional
 public class CardService {
 
     private final CardMapper cardMapper;
-    private PaymentCardRepository cardRepository;
-    private UserRepository userRepository;
+    private final PaymentCardRepository cardRepository;
+    private final UserRepository userRepository;
 
     private final UserCacheEvictor userCacheEvictor;
 
+    static final int MAX_ACTIVE_CARDS = 5;
+
+    @Transactional(readOnly = true)
     public List<CardResponseDto> getCards(String holder,
                                           int page, int size, String sortBy, String sortDir){
         Specification<PaymentCardEntity> cardSpecification = Specification
@@ -53,27 +59,29 @@ public class CardService {
     }
 
     public void changeStatus(Long id , Boolean active){
-        cardRepository.changeActiveById(id,active);
+        if(cardRepository.changeActiveById(id,active) == 0){
+            throw new CardNotFoundException(id);
+        }
     }
 
+    @CacheEvict(cacheNames = USERS_CACHE, key = "#userId")
     public void addCardToUsers(Long userId,CardNewDto card){
-        UserEntity user = userRepository.findByIdAndActive(userId, Boolean.TRUE)
+        UserEntity user = userRepository.findByIdAndActiveTrue(userId)
                 .orElseThrow(() ->new UserNotFoundException(userId));
 
-        if (cardRepository.findByNumber(card.getNumber()).isPresent()) {
+        if (cardRepository.findByNumber(card.getNumber())) {
             throw new CardExistException(card.getNumber());
         }
 
         long cardsCount = cardRepository.countByUser_IdAndActiveTrue(userId);
 
-        if (cardsCount >= 5){
+        if (cardsCount >= MAX_ACTIVE_CARDS){
             throw new CardLimitExceededException(userId);
         }
 
         PaymentCardEntity paymentCardEntity = cardMapper.cardNewToEntity(card);
         paymentCardEntity.setUser(user);
         cardRepository.save(paymentCardEntity);
-        userCacheEvictor.evict(userId);
     }
 
     public void delete(Long id){
@@ -85,6 +93,7 @@ public class CardService {
         userCacheEvictor.evict(userId);
     }
 
+    @Transactional(readOnly = true)
     public CardResponseDto getCard(Long id){
         PaymentCardEntity paymentCardEntity = cardRepository.findById(id)
                 .orElseThrow(() -> new CardNotFoundException(id));
@@ -92,20 +101,22 @@ public class CardService {
         return cardMapper.entityToResponseDto(paymentCardEntity);
     }
 
+    @CacheEvict(cacheNames = USERS_CACHE,key = "#result.user().id()")
     public CardResponseDto update(Long id, UpdateCardDto card){
         PaymentCardEntity paymentCardEntity = cardRepository.findById(id)
                 .orElseThrow(() -> new CardNotFoundException(id));
 
         cardMapper.updateEntity(card,paymentCardEntity);
-
         PaymentCardEntity updatedCard = cardRepository.save(paymentCardEntity);
-
-        userCacheEvictor.evict(updatedCard.getUser().getId());
 
         return cardMapper.entityToResponseDto(updatedCard);
     }
 
+    @Transactional(readOnly = true)
     public List<CardShortResponseDto> getCardsByUserId(Long userId){
+        userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException(userId));
+
         List<PaymentCardEntity> allByUserId = cardRepository.getAllByUser_Id(userId);
 
         return allByUserId.stream()

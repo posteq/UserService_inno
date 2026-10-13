@@ -5,8 +5,8 @@ import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Component;
 
-@Component
 @RequiredArgsConstructor
+@Component
 public class UserCacheEvictor {
     private final CacheManager cacheManager;
 
@@ -17,3 +17,5 @@ public class UserCacheEvictor {
         }
     }
 }
+
+

@@ -24,21 +24,20 @@ import java.time.Duration;
 @CacheConfig
 @Configuration
 public class RedisCacheConfig implements CachingConfigurer {
-    private static final Logger log = LoggerFactory.getLogger(CacheConfig.class);
 
+    private static final Logger log = LoggerFactory.getLogger(RedisCacheConfig.class);
     public static final String USERS_CACHE = "users";
 
     @Bean
-    public RedisCacheManager cacheManager(
-            RedisConnectionFactory connectionFactory,
-            @Value("${app.cache.users-ttl}") Duration usersTtl) {
+    public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory,
+                                          @Value("${app.cache.users-ttl}") Duration usersTtl) {
 
-        // Типизированный сериализатор: в Redis лежит чистый JSON без поля "@class".
         RedisSerializationContext.SerializationPair<UserResponseDtoWithCards> userSerializer =
                 RedisSerializationContext.SerializationPair
                         .fromSerializer(new JacksonJsonRedisSerializer<>(UserResponseDtoWithCards.class));
 
-        RedisCacheConfiguration usersConfig = RedisCacheConfiguration.defaultCacheConfig()
+        RedisCacheConfiguration usersConfig = RedisCacheConfiguration
+                .defaultCacheConfig()
                 .entryTtl(usersTtl)
                 .disableCachingNullValues()
                 .prefixCacheNameWith("user-service:")
@@ -48,7 +47,7 @@ public class RedisCacheConfig implements CachingConfigurer {
 
         return RedisCacheManager.builder(connectionFactory)
                 .withCacheConfiguration(USERS_CACHE, usersConfig)
-                .transactionAware()   // см. объяснение ниже
+                .transactionAware()
                 .build();
     }
 

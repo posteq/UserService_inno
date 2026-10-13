@@ -16,8 +16,7 @@ import static org.mapstruct.NullValuePropertyMappingStrategy.IGNORE;
         nullValuePropertyMappingStrategy = IGNORE)
 public interface CardMapper {
 
-    PaymentCardEntity responseDtoToEntity(CardResponseDto dto);
-
+    @Mapping(source = "user.id" , target = "userId")
     CardResponseDto entityToResponseDto(PaymentCardEntity entity);
 
     CardShortResponseDto entityToShortResponseDto(PaymentCardEntity entity);

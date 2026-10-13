@@ -16,7 +16,6 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,7 +31,7 @@ public class UserService {
     private final UserMapper userMapper;
     private final UserRepository repository;
 
-    @EntityGraph(attributePaths = "paymentCards")
+    @Transactional(readOnly = true)
     public List<UserResponseDto> getUsers(String firstname, String surname,
                                           int page, int size, String sortBy, String sortDir ){
 
@@ -53,6 +52,7 @@ public class UserService {
 
     }
 
+    @Transactional(readOnly = true)
     @Cacheable(cacheNames = USERS_CACHE, key = "#id")
     public UserResponseDtoWithCards getUser(Long id){
         UserEntity userEntity = repository.findWithCardsById(id)
@@ -63,7 +63,9 @@ public class UserService {
 
     @CacheEvict(cacheNames = USERS_CACHE, key = "#id")
     public void changeStatus(Boolean active,Long id){
-        repository.changeActiveById(id,active);
+        if(repository.changeActiveById(id,active) == 0){
+            throw new UserNotFoundException(id);
+        }
     }
 
     public UserResponseDto create(UserNewDto user){
@@ -78,17 +80,23 @@ public class UserService {
 
     @CacheEvict(cacheNames = USERS_CACHE, key = "#id")
     public void delete(Long id){
+        repository.findById(id)
+                        .orElseThrow(() -> new UserNotFoundException(id));
+
         repository.deleteById(id);
     }
 
     @CacheEvict(cacheNames = USERS_CACHE, key = "#id")
-    public UserResponseDto update(Long id, UpdateUserRequest userDomain){
-        UserEntity userEntity = repository.findById(id)
+    public UserResponseDto update(Long id, UpdateUserRequest request){
+        UserEntity user = repository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException(id));
 
-        userMapper.updateEntity(userDomain,userEntity);
-        UserEntity updatedUser = repository.save(userEntity);
+        if(repository.existsByEmail(request.getEmail())){
+            throw new DuplicateCreationException(request.getEmail());
+        }
 
-        return userMapper.userToResponseDto(updatedUser);
+        userMapper.updateEntity(request,user);
+
+        return userMapper.userToResponseDto(user);
     }
 }
