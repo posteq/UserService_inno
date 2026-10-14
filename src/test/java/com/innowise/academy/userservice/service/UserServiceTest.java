@@ -55,27 +55,15 @@ class UserServiceTest {
         return new UserResponseDto(id, "Ann", "Lee", LocalDate.of(1990, 1, 1), "ann@mail.com", true);
     }
 
-//    @Test
-//    void returnsMappedPage_andPassesNormalizedPageable() {
-//        UserEntity e = entity(1L);
-//        when(repository.findAll(any(Specification.class), any(Pageable.class)))
-//                .thenReturn(new PageImpl<>(List.of(e), PageRequest.of(0, 100), 1));
-//        when(userMapper.userToResponseDto(e)).thenReturn(dto(1L));
-//
-//        PageResponse<UserResponseDto> result =
-//                userService.getUsers("Ann", null, 0, 5000, "firstname", "desc");
-//
-//        assertThat(result.content()).containsExactly(dto(1L));
-//        assertThat(result.totalElements()).isEqualTo(1);
-//
-//        ArgumentCaptor<Pageable> captor = ArgumentCaptor.forClass(Pageable.class);
-//        verify(repository).findAll(any(Specification.class), captor.capture());
-//        assertThat(captor.getValue().getPageSize()).isEqualTo(100);           // size ограничен
-//        assertThat(captor.getValue().getSort().getOrderFor("firstname").isDescending()).isTrue();
-//    }
-
     @Test
     void invalidSortField_throwsAndDoesNotTouchRepository() {
+        //given
+
+
+        //when
+
+
+        //then
         assertThatThrownBy(() -> userService.getUsers(null, null, 0, 10, "hack", "ASC"))
                 .isInstanceOf(IllegalArgumentException.class);
         verifyNoInteractions(repository);
@@ -83,37 +71,56 @@ class UserServiceTest {
 
     @Test
     void found_returnsDtoWithCards() {
+        //given
         UserEntity e = entity(1L);
         UserResponseDtoWithCards expected = new UserResponseDtoWithCards(
                 1L, "Ann", "Lee", LocalDate.of(1990, 1, 1), "ann@mail.com", true, List.of());
+
+        //when
         when(repository.findWithCardsById(1L)).thenReturn(Optional.of(e));
         when(userMapper.userToResponseDtoWithCards(e)).thenReturn(expected);
 
+        //then
         assertThat(userService.getUser(1L)).isEqualTo(expected);
     }
 
     @Test
     void notFound_throws() {
+        //given
+
+
+        //when
         when(repository.findWithCardsById(1L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> userService.getUser(1L)).isInstanceOf(UserNotFoundException.class);
+        //then
+        assertThatThrownBy(() -> userService.getUser(1L))
+                .isInstanceOf(UserNotFoundException.class);
         verifyNoInteractions(userMapper);
     }
 
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
     void updated_callsRepository(boolean active) {
+        //given
+
+
+        //when
         when(repository.changeActiveById(1L, active)).thenReturn(1);
 
+        //then
         userService.changeStatus(active, 1L);
-
         verify(repository).changeActiveById(1L, active);
     }
 
     @Test
     void noRowsUpdated_throwsNotFound() {
+        //given
+
+
+        //when
         when(repository.changeActiveById(1L, true)).thenReturn(0);
 
+        //then
         assertThatThrownBy(() -> userService.changeStatus(true, 1L))
                 .isInstanceOf(UserNotFoundException.class);
     }
@@ -121,25 +128,33 @@ class UserServiceTest {
 
     @Test
     void ok_savesAndReturnsDto() {
+        //given
         UserNewDto request = mock(UserNewDto.class);
         UserEntity toSave = entity(null);
         UserEntity saved = entity(1L);
+
+        //when
         when(request.getEmail()).thenReturn("ann@mail.com");
         when(repository.existsByEmail("ann@mail.com")).thenReturn(false);
         when(userMapper.userNewDtoToUser(request)).thenReturn(toSave);
         when(repository.save(toSave)).thenReturn(saved);
         when(userMapper.userToResponseDto(saved)).thenReturn(dto(1L));
 
+        //then
         assertThat(userService.create(request)).isEqualTo(dto(1L));
         verify(repository).save(toSave);
     }
 
     @Test
     void duplicateEmail_throwsAndDoesNotSave() {
+        //given
         UserNewDto request = mock(UserNewDto.class);
+
+        //when
         when(request.getEmail()).thenReturn("ann@mail.com");
         when(repository.existsByEmail("ann@mail.com")).thenReturn(true);
 
+        //then
         assertThatThrownBy(() -> userService.create(request))
                 .isInstanceOf(DuplicateCreationException.class);
         verify(repository, never()).save(any());
@@ -147,37 +162,55 @@ class UserServiceTest {
 
     @Test
     void ok_deletesEntity() {
+        //given
         UserEntity e = entity(1L);
+
+        //when
         when(repository.findById(1L)).thenReturn(Optional.of(e));
 
+        //then
         userService.delete(1L);
-
-        verify(repository).delete(e);
+        verify(repository).deleteById(1L);
     }
 
-//    @Test
-//    void notFound_throws() {
-//        when(repository.findById(1L)).thenReturn(Optional.empty());
-//
-//        assertThatThrownBy(() -> userService.delete(1L)).isInstanceOf(UserNotFoundException.class);
-//        verify(repository, never()).delete(any());
-//    }
+    @Test
+    void user_notFound_throws() {
+        //given
+
+
+        //when
+        when(repository.findById(1L)).thenReturn(Optional.empty());
+
+        //then
+        assertThatThrownBy(() -> userService.delete(1L))
+                .isInstanceOf(UserNotFoundException.class);
+        verify(repository, never()).delete((UserEntity) any());
+    }
 
     @Test
     void ok_updatesEntityViaMapper() {
+        //given
         UserEntity e = entity(1L);
         UpdateUserRequest request = mock(UpdateUserRequest.class);
+
+        //when
         when(repository.findById(1L)).thenReturn(Optional.of(e));
         when(userMapper.userToResponseDto(e)).thenReturn(dto(1L));
 
+        //then
         assertThat(userService.update(1L, request)).isEqualTo(dto(1L));
         verify(userMapper).updateEntity(request, e);
     }
 
     @Test
     void userNotFound_throws() {
+        //given
+
+
+        //when
         when(repository.findById(1L)).thenReturn(Optional.empty());
 
+        //then
         assertThatThrownBy(() -> userService.update(1L, mock(UpdateUserRequest.class)))
                 .isInstanceOf(UserNotFoundException.class);
     }

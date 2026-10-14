@@ -13,13 +13,14 @@ import com.innowise.academy.userservice.repository.specification.UserSpecificati
 import lombok.AllArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import java.util.Set;
 
 import static com.innowise.academy.userservice.config.RedisCacheConfig.USERS_CACHE;
 
@@ -30,25 +31,25 @@ public class UserService {
 
     private final UserMapper userMapper;
     private final UserRepository repository;
+    private static final Set<String> SORT_FIELDS= Set.of("id","firstname","surname","birthday","email");
 
     @Transactional(readOnly = true)
-    public List<UserResponseDto> getUsers(String firstname, String surname,
+    public Page<UserResponseDto> getUsers(String firstname, String surname,
                                           int page, int size, String sortBy, String sortDir ){
 
+        if(!SORT_FIELDS.contains(sortBy)){
+            throw new IllegalArgumentException("Unsupported sort field: " + sortBy);
+        }
         Specification<UserEntity> entitySpecification = Specification
                                                                 .where(UserSpecification.hasFirstname(firstname))
                                                                 .and(UserSpecification.hasSurname(surname));
 
-        Sort sortOrder = sortDir.equalsIgnoreCase(Sort.Direction.ASC.name()) ?
-                Sort.by(sortBy).ascending() :
-                Sort.by(sortBy).descending();
+        Sort sort = Sort.by(Sort.Direction.fromString(sortDir),sortBy);
 
-        PageRequest pageRequest = PageRequest.of(page, size, sortOrder);
+        PageRequest pageRequest = PageRequest.of(page, size, sort);
 
         return repository.findAll(entitySpecification, pageRequest)
-                .getContent().stream()
-                .map(userMapper::userToResponseDto)
-                .toList();
+                .map(userMapper::userToResponseDto);
 
     }
 

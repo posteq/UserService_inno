@@ -11,6 +11,7 @@ import com.innowise.academy.userservice.service.UserService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -49,13 +50,13 @@ public class UserController {
     }
 
     @GetMapping
-    public ResponseEntity<List<UserResponseDto>> getUsers(@RequestParam(required = false) String firstname,
+    public ResponseEntity<Page<UserResponseDto>> getUsers(@RequestParam(required = false) String firstname,
                                                           @RequestParam(required = false) String surname,
                                                           @RequestParam(defaultValue = "0") int page,
                                                           @RequestParam(defaultValue = "10") @Max(100) int size,
                                                           @RequestParam(defaultValue = "firstname") String sortBy,
                                                           @RequestParam(defaultValue = "ASC") String sortDir){
-        List<UserResponseDto> users = userService.getUsers(firstname, surname, page, size, sortBy, sortDir);
+        Page<UserResponseDto> users = userService.getUsers(firstname, surname, page, size, sortBy, sortDir);
         return ResponseEntity.ok()
                 .body(users);
 
