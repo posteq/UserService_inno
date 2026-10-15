@@ -63,9 +63,17 @@ public class CardService {
     }
 
     public void changeStatus(Long id , Boolean active){
-        if(cardRepository.changeActiveById(id,active) == 0){
-            throw new CardNotFoundException(id);
+        PaymentCardEntity card = cardRepository.findById(id)
+                .orElseThrow(() -> new CardNotFoundException(id));
+        Long userId = card.getUser().getId();
+
+        boolean activating = Boolean.TRUE.equals(active) && !Boolean.TRUE.equals(card.getActive());
+        if (activating && cardRepository.countByUser_IdAndActiveTrue(userId) >= MAX_ACTIVE_CARDS) {
+            throw new CardLimitExceededException(userId);
         }
+
+        cardRepository.changeActiveById(id, active);
+        userCacheEvictor.evict(userId);
     }
 
     @CacheEvict(cacheNames = USERS_CACHE, key = "#userId")
@@ -73,7 +81,7 @@ public class CardService {
         UserEntity user = userRepository.findByIdAndActiveTrue(userId)
                 .orElseThrow(() ->new UserNotFoundException(userId));
 
-        if (cardRepository.findByNumber(card.getNumber())) {
+        if (cardRepository.existsByNumber(card.getNumber())) {
             throw new CardExistException(card.getNumber());
         }
 
@@ -105,15 +113,13 @@ public class CardService {
         return cardMapper.entityToResponseDto(paymentCardEntity);
     }
 
-    @CacheEvict(cacheNames = USERS_CACHE,key = "#result.user().id()")
-    public CardResponseDto update(Long id, UpdateCardDto card){
-        PaymentCardEntity paymentCardEntity = cardRepository.findById(id)
+    public CardResponseDto update(Long id, UpdateCardDto dto){
+        PaymentCardEntity card = cardRepository.findById(id)
                 .orElseThrow(() -> new CardNotFoundException(id));
 
-        cardMapper.updateEntity(card,paymentCardEntity);
-        PaymentCardEntity updatedCard = cardRepository.save(paymentCardEntity);
-
-        return cardMapper.entityToResponseDto(updatedCard);
+        cardMapper.updateEntity(dto,card);
+        userCacheEvictor.evict(card.getId());
+        return cardMapper.entityToResponseDto(card);
     }
 
     @Transactional(readOnly = true)

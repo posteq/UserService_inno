@@ -19,5 +19,5 @@ public interface PaymentCardRepository extends JpaRepository<PaymentCardEntity,L
 
     long countByUser_IdAndActiveTrue(Long userId);
 
-    boolean findByNumber(Long number);
+    boolean existsByNumber(Long number);
 }
