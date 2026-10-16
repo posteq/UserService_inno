@@ -1,0 +1,139 @@
+package com.innowise.academy.userservice.service;
+
+import com.innowise.academy.userservice.config.UserCacheEvictor;
+import com.innowise.academy.userservice.dto.request.card.CardNewDto;
+import com.innowise.academy.userservice.dto.request.card.UpdateCardDto;
+import com.innowise.academy.userservice.dto.response.card.CardResponseDto;
+import com.innowise.academy.userservice.dto.response.card.CardShortResponseDto;
+import com.innowise.academy.userservice.entity.PaymentCardEntity;
+import com.innowise.academy.userservice.entity.UserEntity;
+import com.innowise.academy.userservice.exception.CardExistException;
+import com.innowise.academy.userservice.exception.CardLimitExceededException;
+import com.innowise.academy.userservice.exception.CardNotFoundException;
+import com.innowise.academy.userservice.exception.UserNotFoundException;
+import com.innowise.academy.userservice.mapper.CardMapper;
+import com.innowise.academy.userservice.repository.PaymentCardRepository;
+import com.innowise.academy.userservice.repository.UserRepository;
+import com.innowise.academy.userservice.repository.specification.CardSpecification;
+import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Set;
+
+import static com.innowise.academy.userservice.config.RedisCacheConfig.USERS_CACHE;
+
+@Service
+@RequiredArgsConstructor
+@Transactional
+public class CardService {
+
+    private final CardMapper cardMapper;
+    private final PaymentCardRepository cardRepository;
+    private final UserRepository userRepository;
+
+    private final UserCacheEvictor userCacheEvictor;
+
+    static final int MAX_ACTIVE_CARDS = 5;
+    private static final Set<String> SORT_FIELDS= Set.of("id","userId","number","holder","expirationDate");
+
+
+    @Transactional(readOnly = true)
+    public Page<CardResponseDto> getCards(String holder,
+                                          int page, int size, String sortBy, String sortDir){
+
+        if(!SORT_FIELDS.contains(sortBy)){
+            throw new IllegalArgumentException("Unsupported sort field: " + sortBy);
+        }
+        Specification<PaymentCardEntity> cardSpecification = Specification
+                .where(CardSpecification.hasHolder(holder));
+
+        Sort sort = Sort.by(Sort.Direction.fromString(sortDir),sortBy);
+
+        PageRequest pageRequest = PageRequest.of(page, size, sort);
+
+        return cardRepository.findAll(cardSpecification, pageRequest)
+                .map(cardMapper::entityToResponseDto);
+    }
+
+    public void changeStatus(Long id , Boolean active){
+        PaymentCardEntity card = cardRepository.findById(id)
+                .orElseThrow(() -> new CardNotFoundException(id));
+        Long userId = card.getUser().getId();
+
+        boolean activating = Boolean.TRUE.equals(active) && !Boolean.TRUE.equals(card.getActive());
+        if (activating && cardRepository.countByUser_IdAndActiveTrue(userId) >= MAX_ACTIVE_CARDS) {
+            throw new CardLimitExceededException(userId);
+        }
+
+        cardRepository.changeActiveById(id, active);
+        userCacheEvictor.evict(userId);
+    }
+
+    @CacheEvict(cacheNames = USERS_CACHE, key = "#userId")
+    public void addCardToUsers(Long userId,CardNewDto card){
+        UserEntity user = userRepository.findByIdAndActiveTrue(userId)
+                .orElseThrow(() ->new UserNotFoundException(userId));
+
+        if (cardRepository.existsByNumber(card.getNumber())) {
+            throw new CardExistException(card.getNumber());
+        }
+
+        long cardsCount = cardRepository.countByUser_IdAndActiveTrue(userId);
+
+        if (cardsCount >= MAX_ACTIVE_CARDS){
+            throw new CardLimitExceededException(userId);
+        }
+
+        PaymentCardEntity paymentCardEntity = cardMapper.cardNewToEntity(card);
+        paymentCardEntity.setUser(user);
+        cardRepository.save(paymentCardEntity);
+    }
+
+    public void delete(Long id){
+        PaymentCardEntity card = cardRepository.findById(id)
+                .orElseThrow(() -> new CardNotFoundException(id));
+        Long userId = card.getUser().getId();
+        cardRepository.delete(card);
+
+        userCacheEvictor.evict(userId);
+    }
+
+    @Transactional(readOnly = true)
+    public CardResponseDto getCard(Long id){
+        PaymentCardEntity paymentCardEntity = cardRepository.findById(id)
+                .orElseThrow(() -> new CardNotFoundException(id));
+
+        return cardMapper.entityToResponseDto(paymentCardEntity);
+    }
+
+    public CardResponseDto update(Long id, UpdateCardDto dto){
+        PaymentCardEntity card = cardRepository.findById(id)
+                .orElseThrow(() -> new CardNotFoundException(id));
+
+        cardMapper.updateEntity(dto,card);
+        userCacheEvictor.evict(card.getId());
+        return cardMapper.entityToResponseDto(card);
+    }
+
+    @Transactional(readOnly = true)
+    public List<CardShortResponseDto> getCardsByUserId(Long userId){
+        userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException(userId));
+
+        List<PaymentCardEntity> allByUserId = cardRepository.getAllByUser_Id(userId);
+
+        return allByUserId.stream()
+                .map(cardMapper::entityToShortResponseDto)
+                .toList();
+    }
+
+
+
+}

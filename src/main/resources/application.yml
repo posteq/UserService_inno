@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: UserService
+  profiles:
+    default: local
+  datasource:
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+  liquibase:
+    enabled: true
+  data:
+    redis:
+      timeout: 500ms
+      repositories:
+        enabled: false
+app:
+  cache:
+    users-ttl: 10m
+server:
+  port: 8081
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
