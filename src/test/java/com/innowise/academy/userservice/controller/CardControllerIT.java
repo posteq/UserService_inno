@@ -56,7 +56,7 @@ class CardControllerIT extends BaseIT {
             addCard(user.getId(), CARD_NUMBER + n).andExpect(status().isCreated());
         }
         Long firstCardId = cardRepository.findAll().get(0).getId();
-        cardRepository.changeActiveById(firstCardId, false);
+        cardService.changeStatus(firstCardId, false);
 
         addCard(user.getId(), 2000000000000000L).andExpect(status().isCreated());
     }

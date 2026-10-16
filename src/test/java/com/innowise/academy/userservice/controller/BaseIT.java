@@ -4,6 +4,7 @@ import com.innowise.academy.userservice.config.TestContainerConfig;
 import com.innowise.academy.userservice.entity.UserEntity;
 import com.innowise.academy.userservice.repository.PaymentCardRepository;
 import com.innowise.academy.userservice.repository.UserRepository;
+import com.innowise.academy.userservice.service.CardService;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,6 +33,8 @@ public class BaseIT {
     UserRepository userRepository;
     @Autowired
     PaymentCardRepository cardRepository;
+    @Autowired
+    CardService cardService;
     @Autowired
     CacheManager manager;
 

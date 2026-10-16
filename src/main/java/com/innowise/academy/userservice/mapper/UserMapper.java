@@ -22,7 +22,16 @@ public interface UserMapper {
     UserResponseDto userToResponseDto(UserEntity entity);
 
     @Mapping(target = "active", constant = "true")
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "paymentCards", ignore = true)
     UserEntity userNewDtoToUser(UserNewDto user);
 
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "active", ignore = true)
+    @Mapping(target = "paymentCards", ignore = true)
     void updateEntity(UpdateUserRequest request, @MappingTarget UserEntity user);
 }

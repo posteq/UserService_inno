@@ -1,32 +1,27 @@
 spring:
   application:
     name: UserService
+  profiles:
+    default: local
   datasource:
-    url: jdbc:postgresql://localhost:5555/postgres
-    username: postgres
-    password: demo
     driver-class-name: org.postgresql.Driver
-  data:
-    redis:
-      host: localhost
-      port: 6379
-  cache:
-    type: redis
   jpa:
-    show-sql: true
     hibernate:
       ddl-auto: none
-    properties:
-      hibernate:
-        format_sql: true
-        use_sql_comments: true
   liquibase:
     enabled: true
+  data:
+    redis:
+      timeout: 500ms
+      repositories:
+        enabled: false
 app:
   cache:
     users-ttl: 10m
-logging:
-  level:
-    org:
-      springframework:
-        cache: TRACE
+server:
+  port: 8081
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health

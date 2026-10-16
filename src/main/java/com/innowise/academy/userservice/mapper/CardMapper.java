@@ -22,7 +22,17 @@ public interface CardMapper {
     CardShortResponseDto entityToShortResponseDto(PaymentCardEntity entity);
 
     @Mapping(target = "active", constant = "true")
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "user", ignore = true)
     PaymentCardEntity cardNewToEntity(CardNewDto card);
 
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "user", ignore = true)
+    @Mapping(target = "number", ignore = true)
+    @Mapping(target = "active", ignore = true)
     void updateEntity(UpdateCardDto request, @MappingTarget PaymentCardEntity card);
 }
