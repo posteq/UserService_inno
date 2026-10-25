@@ -2,13 +2,13 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: userservice
+      POSTGRES_DB: userdb
       POSTGRES_USER: ${DB_USERNAME:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-demo}
     ports:
       - "5555:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - user-pgdata:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
@@ -31,7 +31,7 @@ services:
       - "8081:8081"
     environment:
       SPRING_PROFILES_ACTIVE: docker
-      DB_URL: jdbc:postgresql://postgres:5432/userservice
+      DB_URL: jdbc:postgresql://postgres:5432/userdb
       DB_USERNAME: ${DB_USERNAME:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-demo}
       REDIS_HOST: redis
@@ -48,4 +48,4 @@ services:
       start_period: 30s
 
 volumes:
-  pgdata:
+  user-pgdata:

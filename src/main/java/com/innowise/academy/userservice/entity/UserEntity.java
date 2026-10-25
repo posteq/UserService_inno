@@ -30,22 +30,23 @@ public class UserEntity extends BaseEntity {
     @Column(name = "id")
     private Long id;
 
-    @Column(name = "firstname")
+    @Column(name = "firstname",nullable = false)
     private String firstname;
 
-    @Column(name = "surname")
+    @Column(name = "surname",nullable = false)
     private String surname;
 
-    @Column(name = "birth_day")
+    @Column(name = "birth_day",nullable = false)
     private LocalDate birthday;
 
-    @Column(name = "email")
+    @Column(name = "email",unique = true,nullable = false)
     private String email;
 
-    @Column(name = "active")
+    @Column(name = "active",nullable = false)
     private Boolean active;
 
     @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     @OneToMany(mappedBy = "user",fetch = FetchType.LAZY,cascade = CascadeType.ALL,orphanRemoval = true)
     private List<PaymentCardEntity> paymentCards = new ArrayList<>();
 }

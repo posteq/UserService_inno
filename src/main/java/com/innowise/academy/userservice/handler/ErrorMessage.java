@@ -1,3 +1,9 @@
 package com.innowise.academy.userservice.handler;
 
-public record ErrorMessage(String message) {}
+import org.springframework.http.HttpStatus;
+
+public record ErrorMessage (int status,String message){
+    public ErrorMessage (HttpStatus status , String message){
+        this(status.value(),message);
+    }
+}
