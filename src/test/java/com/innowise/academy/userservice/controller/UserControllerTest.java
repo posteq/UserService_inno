@@ -3,24 +3,26 @@ package com.innowise.academy.userservice.controller;
 import com.innowise.academy.userservice.entity.UserEntity;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MvcResult;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
 
 class UserControllerTest extends BaseIT{
 
     @Test
     void createUser_returns201WithLocation_andPersists() throws Exception {
         MvcResult result = mockMvc.perform(post("/api/users")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(userJson("Ann", "ann@mail.com")))
                 .andExpect(status().isCreated())
@@ -41,6 +43,7 @@ class UserControllerTest extends BaseIT{
         saveUser("Ann", "ann@mail.com");
 
         mockMvc.perform(post("/api/users")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(userJson("Other", "ann@mail.com")))
                 .andExpect(status().isConflict());
@@ -51,6 +54,7 @@ class UserControllerTest extends BaseIT{
     @Test
     void createUser_invalidEmail_returns400() throws Exception {
         mockMvc.perform(post("/api/users")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(userJson("Ann", "not-email")))
                 .andExpect(status().isBadRequest());
@@ -62,12 +66,17 @@ class UserControllerTest extends BaseIT{
         saveUser("Bob", "b@mail.com");
         saveUser("Carl", "c@mail.com");
 
-        mockMvc.perform(get("/api/users").param("firstname", "Ann"))
+        mockMvc.perform(get("/api/users")
+                        .param("firstname", "Ann")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(1))
                 .andExpect(jsonPath("$.content[0].firstname").value("Ann"));
 
-        mockMvc.perform(get("/api/users").param("size", "2").param("sortBy", "firstname"))
+        mockMvc.perform(get("/api/users")
+                        .param("size", "2")
+                        .param("sortBy", "firstname")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(2))
                 .andExpect(jsonPath("$.totalElements").value(3))
@@ -76,13 +85,16 @@ class UserControllerTest extends BaseIT{
 
     @Test
     void getUsers_unknownSortField_returns400() throws Exception {
-        mockMvc.perform(get("/api/users").param("sortBy", "password"))
+        mockMvc.perform(get("/api/users")
+                        .param("sortBy", "password")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
     void getUser_notFound_returns404() throws Exception {
-        mockMvc.perform(get("/api/users/{id}", 999_999L))
+        mockMvc.perform(get("/api/users/{id}", 999_999L)
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
                 .andExpect(status().isNotFound());
     }
 
@@ -91,6 +103,7 @@ class UserControllerTest extends BaseIT{
         UserEntity user = saveUser("Ann", "ann@mail.com");
 
         mockMvc.perform(put("/api/users/{id}", user.getId())
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(userJson("Anna", "ann2@mail.com")))
                 .andExpect(status().isOk())
@@ -103,7 +116,9 @@ class UserControllerTest extends BaseIT{
     void changeStatus_deactivatesUser_andUpdatesTimestamp() throws Exception {
         UserEntity user = saveUser("Ann", "ann@mail.com");
 
-        mockMvc.perform(patch("/api/users/{id}/active", user.getId()).param("active", "false"))
+        mockMvc.perform(patch("/api/users/{id}/active", user.getId())
+                        .param("active", "false")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
                 .andExpect(status().isNoContent());
 
         UserEntity inDb = userRepository.findById(user.getId()).orElseThrow();
@@ -113,7 +128,9 @@ class UserControllerTest extends BaseIT{
 
     @Test
     void changeStatus_unknownUser_returns404() throws Exception {
-        mockMvc.perform(patch("/api/users/{id}/status", 999_999L).param("active", "true"))
+        mockMvc.perform(patch("/api/users/{id}/status", 999_999L)
+                        .param("active", "true")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
                 .andExpect(status().isNotFound());
     }
 
@@ -121,10 +138,12 @@ class UserControllerTest extends BaseIT{
     void deleteUser_removesUserAndCascadesCards() throws Exception {
         UserEntity user = saveUser("Ann", "ann@mail.com");
         mockMvc.perform(post("/api/users/{id}/cards", user.getId())
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN")))
                         .contentType(MediaType.APPLICATION_JSON).content(cardJson(CARD_NUMBER)))
                 .andExpect(status().isCreated());
 
-        mockMvc.perform(delete("/api/users/{id}", user.getId()))
+        mockMvc.perform(delete("/api/users/{id}", user.getId())
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
                 .andExpect(status().isNoContent());
 
         assertThat(userRepository.existsById(user.getId())).isFalse();
@@ -133,7 +152,9 @@ class UserControllerTest extends BaseIT{
 
     @Test
     void deleteUser_unknown_returns404() throws Exception {
-        mockMvc.perform(delete("/api/users/{id}", 999_999L)).andExpect(status().isNotFound());
+        mockMvc.perform(delete("/api/users/{id}", 999_999L)
+                .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
+                .andExpect(status().isNotFound());
     }
 
 }

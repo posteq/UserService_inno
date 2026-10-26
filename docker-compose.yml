@@ -35,6 +35,9 @@ services:
       DB_USERNAME: ${DB_USERNAME:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-demo}
       REDIS_HOST: redis
+      AUTH_JWKS_URI: ${AUTH_JWKS_URI:-http://host.docker.internal:8082/.well-known/jwks.json}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       postgres:
         condition: service_healthy

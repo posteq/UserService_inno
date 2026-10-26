@@ -10,3 +10,8 @@ spring:
       password: ${REDIS_PASSWORD:}
   jpa:
     show-sql: false
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${AUTH_JWKS_URI}

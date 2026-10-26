@@ -10,6 +10,7 @@ import jakarta.validation.constraints.Max;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -31,6 +32,7 @@ public class UserController {
 
     private final UserService userService;
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<UserResponseDto> create(@RequestBody @Valid UserNewDto userNewDto){
         UserResponseDto userResponseDto = userService.create(userNewDto);
@@ -44,6 +46,7 @@ public class UserController {
                 .body(userResponseDto);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
     public ResponseEntity<Page<UserResponseDto>> getUsers(@RequestParam(required = false) String firstname,
                                                           @RequestParam(required = false) String surname,
@@ -57,6 +60,7 @@ public class UserController {
 
     }
 
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('USER') and @userSecurity.isCurrentUser(#userId, authentication.principal))")
     @GetMapping("/{userId}")
     public ResponseEntity<UserResponseDtoWithCards> getById(@PathVariable Long userId){
         UserResponseDtoWithCards user = userService.getUser(userId);
@@ -64,6 +68,7 @@ public class UserController {
                 .body(user);
     }
 
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('USER') and @userSecurity.isCurrentUser(#userId, authentication.principal))")
     @PutMapping("/{userId}")
     public ResponseEntity<UserResponseDto> update(@PathVariable Long userId,
                                                   @RequestBody @Valid UpdateUserRequest userDomain){
@@ -73,6 +78,7 @@ public class UserController {
                 .body(update);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{userId}")
     public ResponseEntity<Void> deleteById(@PathVariable Long userId){
         userService.delete(userId);
@@ -80,6 +86,7 @@ public class UserController {
                 .build();
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/{userId}/active")
     public ResponseEntity<Void> changeUserStatus(@PathVariable Long userId,
                                                  @RequestParam Boolean active){

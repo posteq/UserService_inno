@@ -20,4 +20,6 @@ public interface PaymentCardRepository extends JpaRepository<PaymentCardEntity,L
     long countByUser_IdAndActiveTrue(Long userId);
 
     boolean existsByNumber(Long number);
+
+    boolean existsByIdAndUser_Id(Long cardId, Long userId);
 }

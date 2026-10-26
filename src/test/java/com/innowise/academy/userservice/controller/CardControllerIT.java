@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.ResultActions;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -16,13 +17,31 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+
+
 
 class CardControllerIT extends BaseIT {
 
     private ResultActions addCard(Long userId, Long number) throws Exception {
         return mockMvc.perform(post("/api/users/{id}/cards", userId)
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN")))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(cardJson(number)));
+    }
+
+    @Test
+    void addCard_withoutAdminRole_returns403AndErrorMessage() throws Exception {
+        UserEntity user = saveUser("Ann", "ann@mail.com");
+
+        mockMvc.perform(post("/api/users/{id}/cards", user.getId())
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_USER")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(cardJson(CARD_NUMBER)))
+                .andExpect(status().isForbidden())
+
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.message").exists());
     }
 
     @Test
@@ -31,7 +50,8 @@ class CardControllerIT extends BaseIT {
 
         addCard(user.getId(), CARD_NUMBER).andExpect(status().isCreated());
 
-        mockMvc.perform(get("/api/users/{id}/cards", user.getId()))
+        mockMvc.perform(get("/api/users/{id}/cards", user.getId())
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].number").value(CARD_NUMBER));
@@ -84,7 +104,8 @@ class CardControllerIT extends BaseIT {
                 """.formatted(expiration);
 
         mockMvc.perform(post("/api/users/{id}/cards", user.getId())
-                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                        .contentType(MediaType.APPLICATION_JSON).content(body)
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
                 .andExpect(status().isBadRequest());
     }
 
@@ -94,12 +115,14 @@ class CardControllerIT extends BaseIT {
         addCard(user.getId(), CARD_NUMBER).andExpect(status().isCreated());
         Long cardId = cardRepository.findAll().getFirst().getId();
 
-        mockMvc.perform(get("/api/cards/{id}", cardId))
+        mockMvc.perform(get("/api/cards/{id}", cardId)
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.userId").value(user.getId()))
                 .andExpect(jsonPath("$.holder").value("ANN LEE"));
 
         mockMvc.perform(put("/api/cards/{id}", cardId)
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"holder": "ANNA LEE", "expirationDate": "2099-12-31"}
@@ -108,17 +131,24 @@ class CardControllerIT extends BaseIT {
                 .andExpect(jsonPath("$.holder").value("ANNA LEE"));
         assertThat(cardRepository.findById(cardId).orElseThrow().getHolder()).isEqualTo("ANNA LEE");
 
-        mockMvc.perform(delete("/api/cards/{id}", cardId)).andExpect(status().isNoContent());
+        mockMvc.perform(delete("/api/cards/{id}", cardId)
+                .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
+                .andExpect(status().isNoContent());
+
         assertThat(cardRepository.existsById(cardId)).isFalse();
     }
 
     @Test
     void getCard_unknown_returns404() throws Exception {
-        mockMvc.perform(get("/api/cards/{id}", 999_999L)).andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/cards/{id}", 999_999L)
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
+                .andExpect(status().isNotFound());
     }
 
     @Test
     void deleteCard_unknown_returns404() throws Exception {
-        mockMvc.perform(delete("/api/cards/{id}", 999_999L)).andExpect(status().isNotFound());
+        mockMvc.perform(delete("/api/cards/{id}", 999_999L)
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
+                .andExpect(status().isNotFound());
     }
 }

@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -27,6 +28,7 @@ public class CardController {
 
     private final CardService service;
 
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('USER') and @userSecurity.isCurrentUser(#cardId, authentication.principal))")
     @GetMapping("/cards/{cardId}")
     public ResponseEntity<CardResponseDto> getById(@PathVariable Long cardId){
         CardResponseDto card = service.getCard(cardId);
@@ -35,6 +37,7 @@ public class CardController {
                 .body(card);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/cards/{cardId}")
     public ResponseEntity<CardResponseDto> update(@PathVariable Long cardId,
                                                   @RequestBody @Valid UpdateCardDto cardDomain){
@@ -44,6 +47,7 @@ public class CardController {
                 .body(update);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/cards/{cardId}")
     public ResponseEntity<Void> deleteById(@PathVariable Long cardId){
         service.delete(cardId);
@@ -51,6 +55,7 @@ public class CardController {
                 .build();
     }
 
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('USER') and @userSecurity.isCurrentUser(#userId, authentication.principal))")
     @PostMapping("/users/{userId}/cards")
     public ResponseEntity<Void> addCardToUser(@PathVariable Long userId,
                                               @RequestBody @Valid CardNewDto cardNewDto){
@@ -60,8 +65,10 @@ public class CardController {
                 .build();
     }
 
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('USER') and @userSecurity.isCurrentUser(#userId, authentication.principal))")
     @GetMapping("/users/{userId}/cards")
     public ResponseEntity<List<CardShortResponseDto>> getCardByUserId(@PathVariable Long userId){
+
         List<CardShortResponseDto> cardsByUserId = service.getCardsByUserId(userId);
 
         return ResponseEntity.ok()
