@@ -35,6 +35,9 @@ The stack starts PostgreSQL, Redis and the service (profile `docker`).
 
 Profiles: `local` (default) and `docker`. Settings are taken from environment variables:
 
+### Using with Gateway
+If using gateway at first run `docker build -t user-service:latest  .`
+
 ## Tests
 
 Coverage report: `build/reports/jacoco/test/html/index.html`
